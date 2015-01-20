@@ -109,6 +109,8 @@ class ColorVisitor(DFSVisitor):
 				target_color="black"
 			elif source_color=="black":
 				target_color="red"
+			elif source_color=="blue":
+				target_color="blue"
 		
 			self.graph.vertex_properties["color"][e.target()] = target_color
 
@@ -148,7 +150,7 @@ class ColorVisitor(DFSVisitor):
 def computePath(g,source,target):
 
 	value = 0
-	sign = 1
+	sign = -1
 
 	while source!=target:
 		parent = g.vertex_properties["parent"][target]
@@ -259,8 +261,8 @@ if __name__=="__main__":
 						dfs_search(g,colvis.start,visitor=colvis)
 
 			#Draw the colored graph
-			print("Drawing the graph...")
-			graph_draw(g,vertex_text=g.vertex_properties['name'],edge_text=g.edge_properties['weight'],vertex_fill_color=g.vertex_properties['color'],output='small{0}.png'.format(t+1),vertex_font_size=18,edge_font_size=18)
+			#print("Drawing the graph...")
+			#graph_draw(g,vertex_text=g.vertex_properties['name'],edge_text=g.edge_properties['weight'],vertex_fill_color=g.vertex_properties['color'],output='small{0}.png'.format(t+1),vertex_font_size=18,edge_font_size=18)
 
 			#The graph is colored, read the questions
 			nQuestions = int(infile.readline().rstrip("\n"))
