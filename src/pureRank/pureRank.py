@@ -28,14 +28,14 @@ class CombCalculator(Binomial):
 		if self._combinations[n,k]>-1:
 			return self._combinations[n,k]
 
-		for ni in range(2,n+1):
-			for ki in range(2,k+1):
-				result = 0
-				for li in range(1,k):
-					result = (result + (self._combinations[ki,li]*self.binomial(ni-ki-1,ki-li-1))%self._modulo)%self._modulo
-				self._combinations[ni,ki] = result
+		for ni in range(3,n+1):
 
-		return result
+			ki,li = np.indices((ni-2,ni-2))
+			ki += 2
+			li += 1
+			self._combinations[ni,2:ni] = ((self._combinations[ki,li]*self.binomial_query(ni-ki-1,ki-li-1))%self._modulo).sum(1)%self._modulo
+
+		return self._combinations[n,k]
 
 	#How many different subsets of (2..n) are pure with respect to n
 	def numPure(self,n):
@@ -56,9 +56,9 @@ line = lambda : sys.stdin.readline().strip("\n")
 def main():
 
 	#Fill in tables
-	calculator = CombCalculator(51)
-	calculator.binomial(50,49)
-	calculator.combinations(50,49)
+	calculator = CombCalculator(501)
+	calculator.binomial(calculator._maxN-1,calculator._maxN-2)
+	calculator.combinations(calculator._maxN-1,calculator._maxN-2)
 
 	#Number of test cases
 	ntest = int(line())
