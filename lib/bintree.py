@@ -131,28 +131,7 @@ class TreeNode(object):
 		return self.left.compare(other.left) and self.right.compare(other.right)
 
 	def isValid(self):
-
-		right = True
-		left = True
-
-		if (self.left is None) and (self.right is None):
-			return True
-
-		if (self.left is not None):
-
-			if self.left.key>=self.key: 
-				return False
-			else:
-				left = self.left.isValid()
-
-		if (self.right is not None):
-			
-			if self.right.key<self.key:
-				return False
-			else:
-				right = self.right.isValid()
-
-		return left and right
+		raise NotImplementedError
 
 
 
