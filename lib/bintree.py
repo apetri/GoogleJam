@@ -131,10 +131,10 @@ class TreeNode(object):
 			collect.append(callback_result)
 
 		if self.left is not None:
-			collect += self.left.inorder()
+			collect += self.left.preorder()
 
 		if self.right is not None:
-			collect += self.right.inorder()
+			collect += self.right.preorder()
 
 		return collect
 
@@ -144,16 +144,39 @@ class TreeNode(object):
 		collect = list()
 
 		if self.left is not None:
-			collect += self.left.inorder()
+			collect += self.left.postorder()
 
 		if self.right is not None:
-			collect += self.right.inorder()
+			collect += self.right.postorder()
 
 		callback_result = self.callback_node()
 		if callback_result is not None:
 			collect.append(callback_result)
 
 		return collect
+
+	#Build the tree from preorder and inorder trasversal sequences (no data stored)
+	@classmethod
+	def build_from_trasversal(cls,preorder=[],inorder=[]):
+
+		#Safety check
+		if len(preorder)!=len(inorder):
+			raise ValueError("Preorder and inorder sequences must have the same length")
+
+		#If the lists are empty there is nothing to do
+		if not(len(preorder)):
+			return None
+
+		#The first entry in the preorder is the root
+		root = cls(preorder[0])
+		root_index_inorder = inorder.index(preorder[0])
+
+		#Reconstruct the right and left subtrees
+		root.left = cls.build_from_trasversal(preorder=preorder[1:root_index_inorder+1],inorder=inorder[:root_index_inorder])
+		root.right = cls.build_from_trasversal(preorder=preorder[root_index_inorder+1:],inorder=inorder[root_index_inorder+1:])
+
+		#Return
+		return root 
 
 
 
