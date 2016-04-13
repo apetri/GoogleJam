@@ -1,54 +1,7 @@
 #Toy implementation of a binary search tree in python
 
-class BinaryTree(object):
-
-	def __init__(self):
-		
-		self.root = None
-		self.size = 0
-		self.height = 0
-
-	def __repr__(self):
-		return "BinaryTree with {0} nodes of height {1}".format(self.size,self.height)
-
-	@property
-	def right(self):
-		return self.root.right
-
-	@property
-	def left(self):
-		return self.root.left 
-
-	def insert(self,key,data=None):
-		
-		self.size += 1
-
-		if self.root is None:
-			self.root = TreeNode(key,data)
-		else:
-			self.height = self.root.insert(key,data)
-
-		self.height = self.root.height
-
-	def search(self,key):
-		if self.root is None:
-			return None
-		else:
-			return self.root.search(key)
-
-	def compare(self,other):
-		
-		if (self.root is None)!=(other.root is None):
-			return False
-
-		if self.root is None:
-			return True
-
-		return self.root.compare(other.root)
-
-	def isValid(self):
-		return self.root.isValid()
-
+#####################################################################
+#####################################################################
 
 class TreeNode(object):
 
@@ -59,12 +12,15 @@ class TreeNode(object):
 		self.parent = None
 		self.left = None
 		self.right = None
-		self.height = 1
+		self.height = 0
+		self.size = 1
 
 	def __repr__(self):
-		return "SubTree of height {0}".format(self.height)
+		return "Tree of height {0}, with {1} elements".format(self.height,self.size)
 
 	def insert(self,key,data=None):
+
+		self.size+=1
 
 		if key<self.key:
 			
@@ -74,9 +30,6 @@ class TreeNode(object):
 				height = 1
 			else:
 				height = self.left.insert(key,data) + 1
-				if height>self.height:
-					self.height = height
-				return height
 
 		else:
 
@@ -87,11 +40,15 @@ class TreeNode(object):
 			else:
 				height = self.right.insert(key,data) + 1
 
-		if height+1>self.height:
-			self.height = height+1
+		if height>self.height:
+			self.height = height
 
 		return height
 
+
+	#################################
+	###########Search################
+	#################################
 
 	def search(self,key):
 
@@ -107,6 +64,10 @@ class TreeNode(object):
 				return None
 			else:
 				return self.right.search(key)
+
+	#################################
+	###########Compare###############
+	#################################
 
 	def compare(self,other):
 
@@ -130,11 +91,69 @@ class TreeNode(object):
 
 		return self.left.compare(other.left) and self.right.compare(other.right)
 
+	############################################
+	###########Valid search tree################
+	############################################
+
 	def isValid(self):
 		raise NotImplementedError
 
+	#################################
+	###########Trasversal############
+	#################################
+
+	def callback_node(self):
+		return self.key
+
+	def inorder(self):
+
+		collect = list()
+
+		if self.left is not None:
+			collect += self.left.inorder()
+
+		callback_result = self.callback_node()
+		if callback_result is not None:
+			collect.append(callback_result)
+
+		if self.right is not None:
+			collect += self.right.inorder()
+
+		return collect
 
 
+	def preorder(self):
+		
+		collect = list()
+
+		callback_result = self.callback_node()
+		if callback_result is not None:
+			collect.append(callback_result)
+
+		if self.left is not None:
+			collect += self.left.inorder()
+
+		if self.right is not None:
+			collect += self.right.inorder()
+
+		return collect
+
+
+	def postorder(self):
+
+		collect = list()
+
+		if self.left is not None:
+			collect += self.left.inorder()
+
+		if self.right is not None:
+			collect += self.right.inorder()
+
+		callback_result = self.callback_node()
+		if callback_result is not None:
+			collect.append(callback_result)
+
+		return collect
 
 
 
