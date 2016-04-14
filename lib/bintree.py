@@ -178,23 +178,33 @@ class TreeNode(object):
 
 	#Build the tree from preorder and inorder trasversal sequences (no data stored)
 	@classmethod
-	def build_from_trasversal(cls,preorder=[],inorder=[]):
+	def build_from_trasversal(cls,preorder=[],inorder=[],pl=0,pr=None,il=0,ir=None,lookup=None):
 
 		#Safety check
 		if len(preorder)!=len(inorder):
 			raise ValueError("Preorder and inorder sequences must have the same length")
 
+		#Fill values and lookup table
+		if pr is None:
+			pr = len(preorder)
+
+		if ir is None:
+			ir = len(inorder)
+
+		if lookup is None:
+			lookup = dict([(k,n) for n,k in enumerate(inorder)])
+
 		#If the lists are empty there is nothing to do
-		if not(len(preorder)):
+		if pl>=pr:
 			return None
 
 		#The first entry in the preorder is the root
-		root = cls(preorder[0])
-		root_index_inorder = inorder.index(preorder[0])
+		root = cls(preorder[pl])
+		root_index_inorder = lookup[root.key]
 
 		#Reconstruct the right and left subtrees
-		root.left = cls.build_from_trasversal(preorder=preorder[1:root_index_inorder+1],inorder=inorder[:root_index_inorder])
-		root.right = cls.build_from_trasversal(preorder=preorder[root_index_inorder+1:],inorder=inorder[root_index_inorder+1:])
+		root.left = cls.build_from_trasversal(preorder,inorder,pl=pl+1,pr=pl+1+root_index_inorder-il,il=il,ir=root_index_inorder,lookup=lookup)
+		root.right = cls.build_from_trasversal(preorder,inorder,pl=pl+1+root_index_inorder-il,pr=pr,il=root_index_inorder+1,ir=ir,lookup=lookup)
 
 		#Return
 		return root 
