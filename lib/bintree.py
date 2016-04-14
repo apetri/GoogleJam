@@ -105,24 +105,33 @@ class TreeNode(object):
 	def callback_node(self):
 		return self.key
 
-	def inorder(self):
+	def callback_null(self):
+		return None
+
+	def inorder(self,with_null=False):
 
 		collect = list()
 
 		if self.left is not None:
-			collect += self.left.inorder()
+			collect += self.left.inorder(with_null)
+
+		if self.left is None and with_null:
+			collect.append(self.callback_null())
 
 		callback_result = self.callback_node()
 		if callback_result is not None:
 			collect.append(callback_result)
 
 		if self.right is not None:
-			collect += self.right.inorder()
+			collect += self.right.inorder(with_null)
+
+		if self.right is None and with_null:
+			collect.append(self.callback_null())
 
 		return collect
 
 
-	def preorder(self):
+	def preorder(self,with_null=False):
 		
 		collect = list()
 
@@ -131,23 +140,35 @@ class TreeNode(object):
 			collect.append(callback_result)
 
 		if self.left is not None:
-			collect += self.left.preorder()
+			collect += self.left.preorder(with_null)
+
+		if self.left is None and with_null:
+			collect.append(self.callback_null())
 
 		if self.right is not None:
-			collect += self.right.preorder()
+			collect += self.right.preorder(with_null)
+
+		if self.right is None and with_null:
+			collect.append(self.callback_null())
 
 		return collect
 
 
-	def postorder(self):
+	def postorder(self,with_null=False):
 
 		collect = list()
 
 		if self.left is not None:
-			collect += self.left.postorder()
+			collect += self.left.postorder(with_null)
+
+		if self.left is None and with_null:
+			collect.append(self.callback_null())
 
 		if self.right is not None:
-			collect += self.right.postorder()
+			collect += self.right.postorder(with_null)
+
+		if self.right is None and with_null:
+			collect.append(self.callback_null())
 
 		callback_result = self.callback_node()
 		if callback_result is not None:
