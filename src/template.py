@@ -9,11 +9,16 @@ import sys
 #####################
 
 line = lambda : sys.stdin.readline().strip("\n")
+getint = lambda : int(line())
+getchar = lambda : line()
+intlist = lambda : [ int(n) for n in line().split(" ") ]
+charlist = lambda : line.split(" ")
+
 
 def main():
 
 	#Number of test cases
-	ntest = int(line())
+	ntest = getint()
 
 	#Cycle over test cases
 	for t in range(ntest):

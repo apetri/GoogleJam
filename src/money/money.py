@@ -33,18 +33,22 @@ def minDenominations(C,D,V,denomination):
 #####################
 
 line = lambda : sys.stdin.readline().strip("\n")
+getint = lambda : int(line())
+getchar = lambda : line()
+intlist = lambda : [ int(n) for n in line().split(" ") ]
+charlist = lambda : line.split(" ")
 
 def main():
 
 	#Number of test cases
-	ntest = int(line())
+	ntest = getint()
 
 	#Cycle over test cases
 	for t in range(ntest):
 		
 		#Read in C,D,V
-		C,D,V = [ int(n) for n in line().split(" ") ]
-		denomination = [ int(n) for n in line().split(" ") ]
+		C,D,V = intlist()
+		denomination = intlist()
 
 		#Calculate answer and output
 		sys.stdout.write("Case #{0}: {1}\n".format(t+1,minDenominations(C,D,V,denomination)))
