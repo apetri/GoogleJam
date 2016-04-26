@@ -9,10 +9,9 @@ import sys
 #####################
 
 line = lambda : sys.stdin.readline().strip("\n")
+getstring = lambda : line()
 getint = lambda : int(line())
-getchar = lambda : line()
-intlist = lambda : [ int(n) for n in line().split(" ") ]
-charlist = lambda : line.split(" ")
+getintlist = lambda : [ int(n) for n in line().split(" ") ]
 
 
 def main():
