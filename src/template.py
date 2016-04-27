@@ -9,7 +9,7 @@ import sys
 #####################
 
 line = lambda : sys.stdin.readline().strip("\n")
-getstring = lambda : line()
+getstringlist = lambda : line().split(" ")
 getint = lambda : int(line())
 getintlist = lambda : [ int(n) for n in line().split(" ") ]
 
