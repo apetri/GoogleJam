@@ -21,16 +21,7 @@ class Graph(object):
 		#Book-keeping
 		self._vertex_dict = dict()
 		self._size = 0
-		self._directed = directed
-		self._parent = dict()
-
-		#Entry/exit times
-		self._time = 0
-		self._entry_time = dict()
-		self._exit_time = dict()
-
-		#Finish dfs search
-		self._finished = False 
+		self._directed = directed 
 
 	def __contains__(self,v):
 		return v.key in self._vertex_dict
@@ -64,22 +55,36 @@ class Graph(object):
 			self[k2].edges.add(k1)
 
 
-	#############################################
-	###############Trasversal####################
-	#############################################
+#############################################
+###############Trasversal####################
+#############################################
 
-	#Callbacks#
+class Visitor(object):
 
-	def process_vertex_early(self,v):
-		print("Process vertex {0} early".format(v.key))
+	def __init__(self,g,v):
 
-	def process_vertex_late(self,v):
-		print("Process vertex {0} late".format(v.key))
+		#Safety type check
+		assert isinstance(g,Graph)
+		assert isinstance(v,Vertex)
 
-	def process_edge(self,v1,v2):
-		print("Process edge {0}-->{1}".format(v1.key,v2.key))
+		#Keep track of graph and source vertex
+		self._graph = g
+		self._source = v
 
-	##################################################################################
+		#Parent map
+		self._parent = dict()
+
+		#Entry/exit times
+		self._time = 0
+		self._entry_time = dict()
+		self._exit_time = dict()
+
+		#Finish dfs search
+		self._finished = False
+
+		#Initialize each vertex as undiscovered
+		for v in self._graph:
+			v.state = UNDISCOVERED
 
 	@property
 	def parent(self):
@@ -93,22 +98,12 @@ class Graph(object):
 	def exit(self):
 		return self._exit_time
 
-	def clear_search(self):
-		
-		self._parent = dict()
-		self._time = 0
-		self._entry_time = dict()
-		self._exit_time = dict()
-
-		for v in self:
-			v.state = UNDISCOVERED
-
 	#Breath first#
-	def bfs(self,v):
+	def bfs(self):
 		
 		#Initialize the queue
 		fifo = Queue.Queue()
-		fifo.put(v)
+		fifo.put(self._source)
 		v.state = DISCOVERED
 
 		#Start the breadth-first search from v
@@ -118,16 +113,16 @@ class Graph(object):
 			current_vertex = fifo.get()
 			
 			#Process vertex early
-			self.process_vertex_early(current_vertex)
+			self.process_vertex_early(self._graph,current_vertex)
 
 			#Process all the edges
 			for edge in current_vertex.edges:
 
-				target_vertex = self[edge]
+				target_vertex = self._graph[edge]
 
 				#Process the edge
-				if (target_vertex.state!=FINISHED) or self._directed:
-					self.process_edge(current_vertex,target_vertex)
+				if (target_vertex.state!=FINISHED) or self._graph._directed:
+					self.process_edge(self._graph,current_vertex,target_vertex)
 
 				#Discover the new vertices
 				if target_vertex.state==UNDISCOVERED:
@@ -137,12 +132,13 @@ class Graph(object):
 
 			#Complete the vertex exploration
 			current_vertex.state = FINISHED
-			self.process_vertex_late(current_vertex)
-
-
+			self.process_vertex_late(self._graph,current_vertex)
 
 	#Depth first#
-	def dfs(self,v):
+	def dfs(self,v=None):
+
+		if v is None:
+			v = self._source
 
 		#End the search 
 		if self._finished:
@@ -150,29 +146,45 @@ class Graph(object):
 		
 		#Initialize the search
 		v.state = DISCOVERED
-		self.process_vertex_early(v)
+		self.process_vertex_early(self._graph,v)
 		self._time+=1
 		self._entry_time[v.key] = self._time
 
 		#Process the edges
 		for edge in v.edges:
 
-			target_vertex = self[edge]
+			target_vertex = self._graph[edge]
 			
 			if target_vertex.state==UNDISCOVERED:
 				
 				self._parent[target_vertex.key] = v.key
-				self.process_edge(v,target_vertex)
+				self.process_edge(self._graph,v,target_vertex)
 				self.dfs(target_vertex)
 
-			elif (target_vertex.state!=FINISHED and self._parent[v.key]!=target_vertex.key) or (self._directed):
-				self.process_edge(v,target_vertex)
+			elif (target_vertex.state!=FINISHED and self._parent[v.key]!=target_vertex.key) or (self._graph._directed):
+				self.process_edge(self._graph,v,target_vertex)
 				if self._finished:
 					return
 
 		#Finish the search
-		self.process_vertex_late(v)
+		self.process_vertex_late(self._graph,v)
 		self._time+=1
 		self._exit_time[v.key] = self._time
 		v.state = FINISHED
+
+
+	#############################
+	#########Callbacks###########
+	#############################
+
+	def process_vertex_early(self,g,v):
+		print("Process vertex {0} early".format(v.key))
+
+	def process_vertex_late(self,g,v):
+		print("Process vertex {0} late".format(v.key))
+
+	def process_edge(self,g,v1,v2):
+		print("Process edge {0}-->{1}".format(v1.key,v2.key))
+
+
 
