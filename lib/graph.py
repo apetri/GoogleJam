@@ -10,8 +10,13 @@ class Vertex(object):
 
 	def __init__(self,key):
 		self.key = key
-		self.edges = set()
+		self._edges = set()
 		self.state = UNDISCOVERED 
+
+	@property 
+	def edges(self):
+		for edge in self._edges:
+			yield edge
 
 #Graph class
 class Graph(object):
@@ -50,9 +55,9 @@ class Graph(object):
 
 	def add_edge(self,k1,k2):
 
-		self[k1].edges.add(k2)
+		self[k1]._edges.add(k2)
 		if not self._directed:
-			self[k2].edges.add(k1)
+			self[k2]._edges.add(k1)
 
 
 #############################################
