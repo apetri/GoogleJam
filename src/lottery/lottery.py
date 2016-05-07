@@ -1,6 +1,7 @@
-#!/usr/bin/env python
-from __future__ import division
+#!/usr/bin/env python3
+
 import sys
+from functools import lru_cache
 
 MAXBITS = 30
 
@@ -17,14 +18,8 @@ base = {
 	7 : 4
 }
 
-#Memoization table
-resultTable = dict()
-
+@lru_cache(maxsize=None)
 def possibilities(A,B,K,maxbits=MAXBITS):
-
-	#Look up the table first
-	if (A,B,K,maxbits) in resultTable:
-		return resultTable[(A,B,K,maxbits)]
 	
 	#Base case
 	bitA = A&2**(maxbits-1)
@@ -32,12 +27,7 @@ def possibilities(A,B,K,maxbits=MAXBITS):
 	bitK = K&2**(maxbits-1)
 
 	if maxbits==1:
-		result = base[bitA*4+bitB*2+bitK]
-
-		if (A,B,K,maxbits) not in resultTable:
-			resultTable[(A,B,K,maxbits)] = result
-
-		return result
+		return base[bitA*4+bitB*2+bitK]
 
 	#Recursion
 	remainderA = A%2**(maxbits-1) + 1
@@ -48,31 +38,25 @@ def possibilities(A,B,K,maxbits=MAXBITS):
 	if bitK:
 
 		if not(bitA) and not(bitB):
-			result = remainderA*remainderB
+			return remainderA*remainderB
 		elif bitA and not(bitB):
-			result = remainderB*(2**(maxbits-1)+remainderA)
+			return remainderB*(2**(maxbits-1)+remainderA)
 		elif not(bitA) and bitB:
-			result = remainderA*(2**(maxbits-1)+remainderB)
+			return remainderA*(2**(maxbits-1)+remainderB)
 		elif bitA and bitB:
-			result = base_possibilities + 2**(2*(maxbits-1)) + (2**(maxbits-1))*(remainderA+remainderB)
+			return base_possibilities + 2**(2*(maxbits-1)) + (2**(maxbits-1))*(remainderA+remainderB)
 
 	else:
 	
 		#If the leading K bit is 0
 		if not(bitA) and not(bitB):
-			result = base_possibilities
+			return base_possibilities
 		elif not(bitA) and bitB:
-			result = base_possibilities + possibilities(A,bitB-1,K,maxbits-1)
+			return base_possibilities + possibilities(A,bitB-1,K,maxbits-1)
 		elif bitA and not(bitB):
-			result = base_possibilities + possibilities(bitA-1,B,K,maxbits-1)
+			return base_possibilities + possibilities(bitA-1,B,K,maxbits-1)
 		else:
-			result = possibilities(bitA-1,B,K,maxbits-1) + possibilities(A,bitB-1,K,maxbits-1) + possibilities(bitA-1,bitB-1,K,maxbits-1)
-
-	if (A,B,K,maxbits) not in resultTable:
-		resultTable[(A,B,K,maxbits)] = result
-		resultTable[(B,A,K,maxbits)] = result
-
-	return result 
+			return possibilities(bitA-1,B,K,maxbits-1) + possibilities(A,bitB-1,K,maxbits-1) + possibilities(bitA-1,bitB-1,K,maxbits-1)
 
 #####################
 #########Main########
