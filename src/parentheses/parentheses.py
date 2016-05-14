@@ -11,15 +11,18 @@ def buildDPTable(N,K):
 	dp_table = np.zeros((N,)*2,dtype=np.int)
 	dp_table[N-1] = 1
 
+	#Always cycle over the last row of the table
+	seen_so_far = 0
+	for k in range(N):
+		seen_so_far += dp_table[N-1,k]
+		if seen_so_far>=K:
+			return N-1,dp_table
+
 	#Fill table top-down
 	for n in range(N-2,-1,-1):
 		
 		dp_table[n,0] = dp_table[n+1].sum()
 		seen_so_far = dp_table[n,0]
-
-		#Doesn't make sense to fill the table anymore
-		if seen_so_far>=K:
-			return n,0,dp_table
 
 		for k in range(1,n+1):
 
@@ -28,7 +31,7 @@ def buildDPTable(N,K):
 
 			#Doesn't make sense to fill the table anymore
 			if seen_so_far>=K:
-				return n,k,dp_table
+				return n,dp_table
 
 	#K is too big
 	return None
@@ -44,7 +47,7 @@ def buildParenthesesOffsets(N,K,dp_data):
 	offsets = np.zeros(N,dtype=np.int)
 
 	#Get the data from the DP table
-	n0,k0,dp_table = dp_data
+	n0,dp_table = dp_data
 	start_k = 0
 
 	#Walk down the digits
@@ -73,10 +76,6 @@ def buildParenthesesOffsets(N,K,dp_data):
 
 #Build parentheses
 def buildParentheses(N,K,dp_data):
-
-	#Extreme case
-	if K==1:
-		return "("*N + ")"*N
 
 	offsets = buildParenthesesOffsets(N,K,dp_data)
 	
