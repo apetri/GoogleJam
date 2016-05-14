@@ -11,12 +11,33 @@ class Vertex(object):
 	def __init__(self,key):
 		self.key = key
 		self._edges = set()
-		self.state = UNDISCOVERED 
+		self.state = UNDISCOVERED
+
 
 	@property 
 	def edges(self):
 		for edge in self._edges:
 			yield edge
+
+	#Add edge
+	def add(self,edge):
+		self._edges.add(edge)
+
+#WeightedVertex class
+class WeighedVertex(Vertex):
+
+	def __init__(self,key):
+		self.key = key
+		self._edges = dict()
+		self.state = UNDISCOVERED
+
+	#Add edge
+	def add(self,target,weight):
+		self._edges[target] = weight
+
+	def weight(self,target):
+		return self._edges[target.key]
+
 
 #Graph class
 class Graph(object):
@@ -55,10 +76,17 @@ class Graph(object):
 
 	def add_edge(self,k1,k2):
 
-		self[k1]._edges.add(k2)
+		self[k1].add(k2)
 		if not self._directed:
-			self[k2]._edges.add(k1)
+			self[k2].add(k1)
 
+#WeightedGraph class
+class WeightedGraph(Graph):
+
+	def add_edge(self,k1,k2,weight):
+		self[k1].add(k2,weight)
+		if not self._directed:
+			self[k2].add(k1,weight)
 
 #############################################
 ###############Trasversal####################
@@ -109,7 +137,7 @@ class Visitor(object):
 		#Initialize the queue
 		fifo = Queue.Queue()
 		fifo.put(self._source)
-		v.state = DISCOVERED
+		self._source.state = DISCOVERED
 
 		#Start the breadth-first search from v
 		while not fifo.empty():
@@ -190,6 +218,13 @@ class Visitor(object):
 
 	def process_edge(self,g,v1,v2):
 		print("Process edge {0}-->{1}".format(v1.key,v2.key))
+
+
+class WeightVisitor(Visitor):
+
+	def process_edge(self,g,v1,v2):
+		print("Process edge {0}-->{1} (weight={2})".format(v1.key,v2.key,v1.weight(v2)))
+
 
 
 
