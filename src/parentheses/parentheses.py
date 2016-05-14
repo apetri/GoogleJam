@@ -7,7 +7,7 @@ import numpy as np
 #DP table
 def buildDPTable(N,K):
 
-	#Initialize table: T(n,k) = number of possibilities in which digit n has offset k and all other digits before k have offset 0
+	#Initialize table: T(n,k) = number of possibilities in which digit n has offset k and all other digits before n have offset 0
 	dp_table = np.zeros((N,)*2,dtype=np.int)
 	dp_table[N-1] = 1
 
