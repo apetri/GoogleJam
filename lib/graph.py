@@ -20,8 +20,8 @@ class Vertex(object):
 			yield edge
 
 	#Add edge
-	def add(self,edge):
-		self._edges.add(edge)
+	def add(self,target):
+		self._edges.add(target)
 
 #WeightedVertex class
 class WeighedVertex(Vertex):
