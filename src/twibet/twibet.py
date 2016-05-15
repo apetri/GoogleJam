@@ -1,75 +1,139 @@
+#!/usr/bin/env python
+from __future__ import division
 import sys
 
-from graph_tool.all import Graph
-from graph_tool.search import bfs_search,BFSVisitor
+import lib.graph as gph
 
-#Connected component size counter
+sys.setrecursionlimit(10000)
 
-class ComponentSize(BFSVisitor):
+###################
+##Graph utilities##
+###################
 
-	def __init__(self):
-		self._component_size = 0
+TREE = 0
+CYCLE = 1
 
-	def discover_vertex(self,u):
-		self._component_size += 1
+class Monk(gph.Vertex):
 
-	@property
-	def component_size(self):
-		return self._component_size
+	def __init__(self,key):
+		super(Monk,self).__init__(key)
+		self.cc_size = 1
+		self.path_length = 1
+		self.type = TREE
+		self.cycle_number = None
+
+class CycleVisitor(gph.Visitor):
+
+	def __init__(self,g,v):
+		super(CycleVisitor,self).__init__(g,v)
+		self.cycle_number = 0
+		self.add_to_cycle = dict()
+
+	def process_vertex_early(self,g,v):
+		pass
+
+	def process_vertex_late(self,g,v):
+
+		if v.type==CYCLE and (v.key in self.parent):
+			parent_vertex = g[self.parent[v.key]] 
+			parent_vertex.type = CYCLE 
+			parent_vertex.cc_size = v.cc_size
+			parent_vertex.cycle_number = v.cycle_number
 
 
-#Parse input into a graph
+	def process_edge(self,g,v1,v2):
+		
+		if v2.state==gph.UNDISCOVERED:
+			v2.path_length = v1.path_length + 1
 
-def parse_graph(following,n):
+		if v2.state==gph.DISCOVERED:
+			v1.type = CYCLE
+			v1.cycle_number = self.cycle_number
+			self.add_to_cycle[v1.cycle_number] = 0
+			v1.cc_size = v1.path_length
 
-	g = Graph()
+class TreeVisitor(gph.Visitor):
 
-	#Add n vertices to the graph
-	g.add_vertex(n)
+	def process_vertex_early(self,g,v):
+		pass
 
-	#Add a directed edge from a monk to each of his followers
-	for i,j in enumerate(following):
-		g.add_edge(g.vertex(int(j)-1),g.vertex(i))
+	def process_vertex_late(self,g,v):
+		for target in v.edges:
+			v.cc_size += g[target].cc_size
+
+	def process_edge(self,g,v1,v2):
+		pass
+
+#########################################
+
+def whisper(N,follows):
+	
+	#Parse graph
+	g = gph.Graph(directed=True)
+	for n in range(N):
+		g.add_vertex(Monk(n))
+
+	for n in range(N):
+		g.add_edge(follows[n]-1,n)
+
+	#Depth first search to find cycles
+	cyclevisitor = CycleVisitor(g,g[0])
+	for n in range(N):
+		if g[n].state==gph.UNDISCOVERED:
+			cyclevisitor.cycle_number += 1
+			cyclevisitor.set_source(g[n])
+			cyclevisitor.dfs()
+
+	#Depth first search to find trees
+	treevisitor = TreeVisitor(g,g[0])
+	for n in range(N):
+		if g[n].state==gph.UNDISCOVERED and g[n].type==TREE:
+			treevisitor.set_source(g[n])
+			treevisitor.dfs()
+
+	#See if any trees attach to the cycles
+	for v in g:
+		if v.type==CYCLE:
+			for target in v.edges:
+				if g[target].type==TREE:
+					cyclevisitor.add_to_cycle[v.cycle_number] += g[target].cc_size 
+
+	#Return component sizes with cycles added
+	cc_sizes = list()
+	for n in range(N):
+		if g[n].type==TREE:
+			cc_sizes.append(g[n].cc_size)
+		else:
+			cc_sizes.append(g[n].cc_size + cyclevisitor.add_to_cycle[g[n].cycle_number])
+
+	return cc_sizes
+
+#####################
+#########Main########
+#####################
+
+line = lambda : sys.stdin.readline().strip("\n")
+getstringlist = lambda : line().split(" ")
+getint = lambda : int(line())
+getintlist = lambda : [ int(n) for n in line().split(" ") ]
 
 
-	#Return the created graph
-	return g
+def main():
 
+	#Number of test cases
+	ntest = getint()
 
-#Main execution
+	#Cycle over test cases
+	for t in range(ntest):
+		
+		N = getint()
+		follows = getintlist()
+		whispers = whisper(N,follows)
+
+		#Calculate answer and output
+		sys.stdout.write("Case #{0}:\n".format(t+1))
+		for n in range(N):
+			sys.stdout.write("{0}\n".format(whispers[n]))
 
 if __name__=="__main__":
-
-	#Input and output filenames
-	input_filename = sys.argv[1]
-	output_filename = input_filename.replace(".in.",".out.")
-
-	#Output file descriptor
-	output = file(output_filename,"w")
-
-	#Process the input one case at a time
-	with open(input_filename,"r") as infile:
-
-		nTest = int(infile.readline().rstrip("\n"))
-		
-		for t in range(nTest):
-
-			#Case header
-			output.write("Case #{0}:\n".format(t+1))
-
-			#Parse the number of monks
-			nMonks = int(infile.readline().rstrip("\n"))
-
-			#Build the graph
-			following = infile.readline().rstrip("\n").split(" ")
-			g = parse_graph(following,nMonks)
-
-			#For each monk, compute the size of the connected component the monk sits in, using breath-first search
-			for m in range(nMonks):
-				counter = ComponentSize()
-				bfs_search(g,g.vertex(m),visitor=counter)
-				output.write("{0}\n".format(counter.component_size))
-
-
-	#Close output file
-	output.close()
+	main()
