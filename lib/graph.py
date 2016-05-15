@@ -24,7 +24,7 @@ class Vertex(object):
 		self._edges.add(target)
 
 #WeightedVertex class
-class WeighedVertex(Vertex):
+class WeightedVertex(Vertex):
 
 	def __init__(self,key):
 		self.key = key
@@ -119,6 +119,11 @@ class Visitor(object):
 		for v in self._graph:
 			v.state = UNDISCOVERED
 
+	#Change source vertex
+	def set_source(self,v):
+		self._source = v
+		self._finished = False
+
 	@property
 	def parent(self):
 		return self._parent
@@ -193,6 +198,11 @@ class Visitor(object):
 				self._parent[target_vertex.key] = v.key
 				self.process_edge(self._graph,v,target_vertex)
 				self.dfs(target_vertex)
+
+			elif target_vertex is v:
+				self.process_edge(self._graph,v,target_vertex)
+				if self._finished:
+					return
 
 			elif (target_vertex.state!=FINISHED and self._parent[v.key]!=target_vertex.key) or (self._graph._directed):
 				self.process_edge(self._graph,v,target_vertex)

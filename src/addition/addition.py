@@ -1,292 +1,222 @@
+#!/usr/bin/env python
 from __future__ import division
-
 import sys
-from graph_tool.all import Graph,dfs_search,DFSVisitor,shortest_path,graph_draw
 
-#Parse input strings
-def parseLine(line):
+import lib.graph as gph
 
-	left,right = line.split("=")
-	value = int(right)
-	first,second = left.split("+")
+#Colors
+UNDECIDED = None
+RED = True
+BLACK = False
 
-	return first,second,value
+#Recursion depth
+sys.setrecursionlimit(100000)
 
-def parseQuestion(line):
+##########################################################################
 
-	return line.split("+")
+#Vertex type
+class Variable(gph.WeightedVertex):
 
-#Build the graph given the known conditions (each one is an edge)
-def parseGraph(conditions):
+	def __init__(self,key):
 
-	#Hash table that maps names to vertices
-	vertex = dict()
-	count = 0
+		super(Variable,self).__init__(key)
+		self.color = UNDECIDED
+		self.value = None
+		self.component = None
 
-	#Graph
-	g = Graph(directed=False)
+###########################################################################
 
-	#Name of the vertices
-	name = g.new_vertex_property("string")
-	g.vertex_properties["name"] = name
+#Coloring visitor
+class ColorFill(gph.Visitor):
 
-	#Numerical value of the vertices
-	value = g.new_vertex_property("float")
-	g.vertex_properties["value"] = value
+	def __init__(self,g,v):
+		super(ColorFill,self).__init__(g,v)
+		self.component_known = dict()
 
-	#Color of the vertices
-	color = g.new_vertex_property("string")
-	g.vertex_properties["color"] = color
+	def process_vertex_early(self,g,v):
+		pass
 
-	#Parent of this vertex during DFS
-	parent = g.new_vertex_property("object")
-	g.vertex_properties["parent"] = parent
+	def process_vertex_late(self,g,v):
+		pass
 
-	#Weight of the edges
-	weight = g.new_edge_property("int")
-	g.edge_properties["weight"] = weight
-
-	#Is an edge tree or back
-	tree = g.new_edge_property("bool")
-	g.edge_properties["tree"] = tree
-
-	#Cycle over all the conditions
-	for condition in conditions:
-		n1,n2,v = parseLine(condition)
-
-		#Add the vertices if not there already
-		for n in [n1,n2]:
-			try:
-				vertex[n]
-			except KeyError:
-				vertex[n] = count
-				count += 1
-				new_vertex = g.add_vertex()
-				name[new_vertex] = n
-				color[new_vertex] = "grey"
-				parent[new_vertex] = None
-				value[new_vertex] = 0
-
-		#Add the edge if not there already
-		if g.edge(vertex[n1],vertex[n2]) is None:
-			new_edge = g.add_edge(vertex[n1],vertex[n2])
-			weight[new_edge] = v
-			tree[new_edge] = False
-
-	#The graph is built, return
-	return g,vertex
-
-
-#Color the graph during DFS using the ColorVisitor class 
-class ColorVisitor(DFSVisitor):
-
-	def __init__(self,graph):
-		self.graph = graph
-		self.blue = False
-		self.propagate = False
-
-	def togglePropagate(self):
-		self.propagate = not(self.propagate)
-
-	def finish_vertex(self,u):
-		if self.blue:
-			self.graph.vertex_properties["color"][u]="blue"
-
-	def start_vertex(self,u):
-		if self.graph.vertex_properties["color"][u]=="grey":
-			self.graph.vertex_properties["color"][u]="black"
-
-	def tree_edge(self,e):
+	def process_edge(self,g,v1,v2):
 		
-		if not self.propagate:
-		
-			#Mark the edge as tree
-			self.graph.edge_properties["tree"][e] = True
+		#If we are discovering the vertex
+		if v2.state==gph.UNDISCOVERED:
 
-			source_color = self.graph.vertex_properties["color"][e.source()]
-		
-			if source_color=="red":
-				target_color="black"
-			elif source_color=="black":
-				target_color="red"
-			elif source_color=="blue":
-				target_color="blue"
-		
-			self.graph.vertex_properties["color"][e.target()] = target_color
-
-			#Determine the parenthood chain
-			child = e.target()
-			parent = e.source()
-			self.graph.vertex_properties["parent"][child] = parent
+			#Connected component and color
+			v2.component = v1.component
+			v2.color = not(v1.color)
 
 		else:
-			targetName = self.graph.vertex_properties["name"][e.target()]
-			targetValue = self.graph.edge_properties["weight"][e] - self.graph.vertex_properties["value"][e.source()]
-			self.graph.vertex_properties["value"][e.target()] = targetValue
-			self.graph.vertex_properties["name"][e.target()] = "{0}={1:.1f}".format(targetName,targetValue)
+
+			#If the target is the same as the source then we are done
+			if v1 is v2:
+				v1.value = v1.weight(v2) / 2
+				self.component_known[v1.component] = v1
+			
+			#If the vertex is already discovered and they are the same color
+			elif v1.color==v2.color:
+				v2.value = (v1.weight(v2) + self.unwind_cycle(v1,v2,-1)) / 2
+				self.component_known[v2.component] = v2
 
 
-	def back_edge(self,e):
+	#Unwind the cycle
+	def unwind_cycle(self,v1,v2,sign):
+		
+		if v1.key==v2.key:
+			return 0
+		else:
+			parent_vertex = self._graph[self.parent[v1.key]]
+			return sign*v1.weight(parent_vertex) + self.unwind_cycle(parent_vertex,v2,-sign)
 
-		#Execute only if the edge is a back edge
-		if not(self.graph.edge_properties["tree"][e]) and not(self.blue):
-			if self.graph.vertex_properties["color"][e.source()]==self.graph.vertex_properties["color"][e.target()]:
-				
-				#Color vertices in blue
-				self.graph.vertex_properties["color"][e.source()]="blue"
-				self.graph.vertex_properties["color"][e.target()]="blue"
-				self.blue=True
-
-				#We know exactly the value of the vertex at this point
-				targetName = self.graph.vertex_properties["name"][e.target()]
-				targetValue = (self.graph.edge_properties["weight"][e] + computePath(self.graph,e.target(),e.source())) / 2
-				self.graph.vertex_properties["value"][e.target()] = targetValue
-				self.graph.vertex_properties["name"][e.target()] = "{0}={1:.1f}".format(targetName,targetValue)
-				self.start = e.target()
+	#Path to the root
+	def path_to_root(self,v,sign):
+		
+		if v.key not in self.parent:
+			return 0
+		else:
+			parent_vertex = self._graph[self.parent[v.key]]
+			return sign*v.weight(parent_vertex) + self.path_to_root(parent_vertex,-sign)
 
 
+#Fill value visitor
+class ValueFill(gph.Visitor):
 
-#Sum the values of the edges, alternating signs, along a path
-def computePath(g,source,target):
+	def process_vertex_early(self,g,v):
+		pass
 
-	value = 0
-	sign = -1
+	def process_vertex_late(self,g,v):
+		pass
 
-	while source!=target:
-		parent = g.vertex_properties["parent"][target]
-		value += sign*g.edge_properties["weight"][g.edge(parent,target)]
-		target = parent
-		sign *= -1
+	def process_edge(self,g,v1,v2):
+		
+		if v2.state==gph.UNDISCOVERED:
+			v2.value = v1.weight(v2) - v1.value
 
-	return value
+########################################################################################################
 
-#Given the question asked, decide if we can answer it
-def answerQuestion(g,vertex,n1,n2):
+def calculateAnswers(N,known,Q,questions):
 
-	#Translate the names into the corresponding vertices
-	try:
-		u1 = g.vertex(vertex[n1])
-		u2 = g.vertex(vertex[n2])
-	except KeyError:
-		return None
+	#Answer list
+	answers = list()
 
-	########################	
-	##Now the fun begins####
-	########################
+	#Parse the known answers in a graph
+	g = gph.WeightedGraph()
+	for ans in known:
 
-	if g.edge(u1,u2) is not None:
+		addends,value = ans.split("=")
+		k1,k2 = addends.split("+")
 
-		#If there is an edge between these two vertices, the weight is the answer
-		answer = g.edge_properties["weight"][g.edge(u1,u2)]
+		#Vertices
+		for k in (k1,k2):
+			var = Variable(k)
+			if var not in g:
+				g.add_vertex(var)
 
-	elif (g.vertex_properties["color"][u1]=="blue") and (g.vertex_properties["color"][u2]=="blue"):
+		#Edges
+		g.add_edge(k1,k2,int(value))
 
-		#If the two vertices are blue, we know exactly their value
-		answer = g.vertex_properties["value"][u1] + g.vertex_properties["value"][u2]
+	#Do a first DFS to color the graph
+	colorfill = ColorFill(g,g[k])
+	component = 0
+	for v in g:
+		
+		if v.state==gph.UNDISCOVERED:	
+			component += 1
+			v.component = component 
+			v.color = RED
+			colorfill.set_source(v)
+			colorfill.dfs()
 
-	elif g.vertex_properties["color"][u1]!=g.vertex_properties["color"][u2]:
+	#Do a second DFS to fill in the known values of the variables
+	valuefill = ValueFill(g,g[k])
+	for cc in colorfill.component_known:
+		valuefill.set_source(colorfill.component_known[cc])
+		valuefill.dfs()
 
-		#If the two verices have a different color, there might still be hope, if they are in the same connected component
-		vertices_path,edges_path = shortest_path(g,u1,u2)
+	#########################################
+	#############Ready to answer#############
+	#########################################
 
-		#If there is no path, forget it
-		if len(edges_path)==0:
-			return None
+	for question in questions:
 
-		#Otherwise we can compute an answer
-		sign = 1
-		answer = 0
+		#Parse question
+		k1,k2 = question.split("+")
 
-		#Sum the values of the edges with alternate signs
-		for edge in edges_path:
-			answer += sign * g.edge_properties["weight"][edge]
-			sign *= -1
+		#Check that we have information on (k1,k2)
+		try:
+			g[k1]
+		except KeyError:
+			continue
 
-		#Check that we did everything correctly
-		assert sign==-1
+		try:
+			g[k2]
+		except KeyError:
+			continue
 
-		#We know the answer, it means our graph has a new black-red edge now
-		edge = g.add_edge(u1,u2)
-		g.edge_properties["weight"][edge] = answer
+		#If we have value info on both k1,k2 we can answer
+		if (g[k1].value is not None) and (g[k2].value is not None):
+			answer_value = int(g[k1].value+g[k2].value)
+			answers.append(question+"={0}".format(answer_value))
+			continue
 
-	else:
-		return None
+		#If we do not have value info, there needs to be a path between k1 and k2
+		if g[k1].component!=g[k2].component:
+			continue
 
-	#We have the answer now, format it into a string
-	return "{0}+{1}={2}".format(n1,n2,int(answer))
+		#If there exists a path between k1,k2, they need to have different colors
+		if g[k1].color==g[k2].color:
+			continue
 
+		if k2 in g[k1].edges:
+			answers.append(question+"={0}".format(g[k1].weight(g[k2])))
+			continue
+
+		#Reconstruct the paths to the root
+		answer_value = int(colorfill.path_to_root(g[k1],1) + colorfill.path_to_root(g[k2],1))
+		answers.append(question+"={0}".format(answer_value))
+
+	#Return
+	return answers
+
+
+#####################
+#########Main########
+#####################
+
+line = lambda : sys.stdin.readline().strip("\n")
+getstringlist = lambda : line().split(" ")
+getint = lambda : int(line())
+getintlist = lambda : [ int(n) for n in line().split(" ") ]
+
+
+def main():
+
+	#Number of test cases
+	ntest = getint()
+
+	#Cycle over test cases
+	for t in range(ntest):
+		
+		#Parse known answers and questions
+		known = list()
+		questions = list()
+		
+		N = getint()
+		for n in range(N):
+			known.append(line())
+
+		Q = getint()
+		for q in range(Q):
+			questions.append(line())
+
+		#Answers
+		answers = calculateAnswers(N,known,Q,questions)
+
+		#Calculate answer and output
+		sys.stdout.write("Case #{0}:\n".format(t+1))
+		sys.stdout.write("\n".join(answers)+"\n")
 
 if __name__=="__main__":
-
-	#In/out filenames
-	input_filename = sys.argv[1]
-	output_filename = input_filename.replace(".in.",".out.")
-	outfile = open(output_filename,"w")
-
-	#Cycle over input lines
-	with open(input_filename,"r") as infile:
-
-		#Get number of test cases
-		nTest = int(infile.readline().rstrip("\n"))
-
-		#Cycle over test cases
-		for t in range(nTest):
-
-			print("Processing case {0}...".format(t+1))
-			outfile.write("Case #{0}:\n".format(t+1))
-
-			#Read in number of conditions
-			nConditions = int(infile.readline().rstrip("\n"))
-
-			#Read in all the conditions
-			conditions = list()
-			for n in range(nConditions):
-				conditions.append(infile.readline().rstrip("\n"))
-
-			#Build a graph with the conditions
-			print("Building the graph...")
-			g,vertex = parseGraph(conditions)
-
-			#Proceed in the graph coloring, making sure we get all the connected components
-			print("Coloring the graph...")
-			for v in g.vertices():
-				if g.vertex_properties["color"][v]=="grey":
-
-					colvis = ColorVisitor(g)
-					dfs_search(g,v,visitor=colvis)
-
-					#If the component is solvable, solve it
-					if g.vertex_properties["color"][v]=="blue":
-						colvis.togglePropagate()
-						dfs_search(g,colvis.start,visitor=colvis)
-
-			#Draw the colored graph
-			#print("Drawing the graph...")
-			#graph_draw(g,vertex_text=g.vertex_properties['name'],edge_text=g.edge_properties['weight'],vertex_fill_color=g.vertex_properties['color'],output='small{0}.png'.format(t+1),vertex_font_size=18,edge_font_size=18)
-
-			#The graph is colored, read the questions
-			nQuestions = int(infile.readline().rstrip("\n"))
-
-			#Cycle over the questions, answer them and write the answers to the output
-			print("Answering questions...")
-			for n in range(nQuestions):
-				question = infile.readline().rstrip("\n")
-				n1,n2 = parseQuestion(question)
-				answer = answerQuestion(g,vertex,n1,n2)
-				if answer is not None:
-					outfile.write("{0}\n".format(answer))
-
-
-	#Close output file
-	outfile.close()
-
-
-
-
-
-
-		
-	
-
-
-
+	main()
