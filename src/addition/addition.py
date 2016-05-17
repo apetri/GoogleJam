@@ -6,8 +6,8 @@ import lib.graph as gph
 
 #Colors
 UNDECIDED = None
-RED = True
-BLACK = False
+RED = 1
+BLACK = -1
 
 #Recursion depth
 sys.setrecursionlimit(100000)
@@ -23,6 +23,7 @@ class Variable(gph.WeightedVertex):
 		self.color = UNDECIDED
 		self.value = None
 		self.component = None
+		self.cumulated_path = 0
 
 ###########################################################################
 
@@ -46,39 +47,15 @@ class ColorFill(gph.Visitor):
 
 			#Connected component and color
 			v2.component = v1.component
-			v2.color = not(v1.color)
+			v2.color = -v1.color
+			v2.cumulated_path = v1.cumulated_path + v1.color*v1.weight(v2)
 
 		else:
-
-			#If the target is the same as the source then we are done
-			if v1 is v2:
-				v1.value = v1.weight(v2) / 2
-				self.component_known[v1.component] = v1
 			
 			#If the vertex is already discovered and they are the same color
-			elif v1.color==v2.color:
-				v2.value = (v1.weight(v2) + self.unwind_cycle(v1,v2,-1)) / 2
+			if v1.color==v2.color:
+				v2.value = (v1.weight(v2) + v1.color*(v1.cumulated_path - v2.cumulated_path)) / 2 
 				self.component_known[v2.component] = v2
-
-
-	#Unwind the cycle
-	def unwind_cycle(self,v1,v2,sign):
-		
-		if v1.key==v2.key:
-			return 0
-		else:
-			parent_vertex = self._graph[self.parent[v1.key]]
-			return sign*v1.weight(parent_vertex) + self.unwind_cycle(parent_vertex,v2,-sign)
-
-	#Path to the root
-	def path_to_root(self,v,sign):
-		
-		if v.key not in self.parent:
-			return 0
-		else:
-			parent_vertex = self._graph[self.parent[v.key]]
-			return sign*v.weight(parent_vertex) + self.path_to_root(parent_vertex,-sign)
-
 
 #Fill value visitor
 class ValueFill(gph.Visitor):
@@ -174,7 +151,7 @@ def calculateAnswers(N,known,Q,questions):
 			continue
 
 		#Reconstruct the paths to the root
-		answer_value = int(colorfill.path_to_root(g[k1],1) + colorfill.path_to_root(g[k2],1))
+		answer_value = -int(g[k1].cumulated_path*g[k1].color + g[k2].cumulated_path*g[k2].color)
 		answers.append(question+"={0}".format(answer_value))
 
 	#Return
