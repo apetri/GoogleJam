@@ -17,6 +17,10 @@ class MinHeap(object):
 	def queue(self):
 		return self._queue.queue
 
+	@property
+	def empty(self):
+		return self._queue.empty()
+
 
 class MaxHeap(object):
 	
@@ -35,3 +39,7 @@ class MaxHeap(object):
 	@property
 	def queue(self):
 		return [ (-item[0],item[1]) for item in self._queue.queue]
+
+	@property
+	def empty(self):
+		return self._queue.empty()
