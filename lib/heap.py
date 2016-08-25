@@ -32,11 +32,14 @@ class Heap(object):
 		return not(self._size)
 
 	#First element 
-	@property 
-	def top(self):
+	def top(self,retrieve_data=True):
 		if not(self.size):
 			raise ValueError("Heap is empty!!")
-		return self._queue[1].key,self._queue[1].data
+
+		if retrieve_data:
+			return self._queue[1].key,self._queue[1].data
+		else:
+			return self._queue[1].key
 
 	###################
 	#Heap construction#
@@ -99,7 +102,7 @@ class Heap(object):
 	#Pop top element#
 	#################
 
-	def get(self):
+	def get(self,retrieve_data=True):
 
 		#If empty return nothing
 		if self.empty:
@@ -112,7 +115,11 @@ class Heap(object):
 
 		#Return to user
 		node = self._queue[self.size+1]
-		return node.key,node.data 
+
+		if retrieve_data:
+			return node.key,node.data
+		else:
+			return node.key 
 
 ###########
 #Data node#
